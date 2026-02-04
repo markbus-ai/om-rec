@@ -1,0 +1,7 @@
+#!/bin/bash
+BIN="/home/markbusking/.local/bin/om-rec"
+if [ -f /tmp/om-rec.pid ]; then
+    $BIN stop
+else
+    $BIN start
+fi

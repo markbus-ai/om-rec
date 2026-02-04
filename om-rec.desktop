@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Omarchy Recorder
+Exec=/home/markbusking/.local/bin/om-toggle-rec
+Terminal=false
+Type=Application
+Icon=video-display
+Categories=Utility;
