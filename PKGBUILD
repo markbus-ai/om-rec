@@ -1,4 +1,4 @@
-# Maintainer: Marcos Bustos <markbusking@omarchy.xyz>
+# Maintainer: Marcos Bustos <markbustos1912@gmail.com>
 pkgname=om-rec
 pkgver=1.0.0
 pkgrel=1
