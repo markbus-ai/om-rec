@@ -9,7 +9,7 @@ license=('MIT')
 depends=('wf-recorder' 'slurp' 'libnotify')
 makedepends=('gcc' 'make')
 source=("${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('SKIP') # Se actualiza con 'updpkgsums' antes de subir
+sha256sums=('e2850eaa44c42045341a58e32ee84dee9f50c58c1179f08c5e375ff6b08f5d88') # Se actualiza con 'updpkgsums' antes de subir
 
 build() {
     cd "$pkgname-$pkgver"
