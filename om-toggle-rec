@@ -1,5 +1,8 @@
 #!/bin/bash
-BIN="/home/markbusking/.local/bin/om-rec"
+
+# Esta variable la sobreescribe el Makefile al instalar
+BIN="om-rec"
+
 if [ -f /tmp/om-rec.pid ]; then
     $BIN stop
 else
