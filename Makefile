@@ -1,8 +1,11 @@
 CC = gcc
 CFLAGS = -O3 -fstack-protector-strong
 TARGET = om-rec
-BIN_DIR = $(HOME)/.local/bin
-APP_DIR = $(HOME)/.local/share/applications
+
+# Defaults para instalación local (make install a secas)
+PREFIX ?= $(HOME)/.local
+BIN_DIR = $(DESTDIR)$(PREFIX)/bin
+APP_DIR = $(DESTDIR)$(PREFIX)/share/applications
 
 all: $(TARGET)
 
@@ -11,25 +14,19 @@ $(TARGET): om-rec.c
 	strip $(TARGET)
 
 install: all
-	@echo "Instalando Omarchy Recorder..."
+	@echo "Instalando Omarchy Recorder en $(BIN_DIR)..."
 	mkdir -p $(BIN_DIR)
 	mkdir -p $(APP_DIR)
-	cp $(TARGET) $(BIN_DIR)/
-	cp om-toggle-rec $(BIN_DIR)/
-	chmod +x $(BIN_DIR)/om-toggle-rec
-	cp om-rec.desktop $(APP_DIR)/
+	install -m 755 $(TARGET) $(BIN_DIR)/$(TARGET)
+	install -m 755 om-toggle-rec $(BIN_DIR)/om-toggle-rec
+	install -m 644 om-rec.desktop $(APP_DIR)/om-rec.desktop
 	
-	# Asegurar rutas absolutas en el script wrapper instalado
-	sed -i 's|BIN=.*|BIN="$(BIN_DIR)/$(TARGET)"|' $(BIN_DIR)/om-toggle-rec
+	# Ajustar rutas en el script instalado para apuntar al binario correcto
+	# Si PREFIX es /usr (instalación sistema), el binario estará en /usr/bin/om-rec
+	sed -i 's|BIN=.*|BIN="$(PREFIX)/bin/$(TARGET)"|' $(BIN_DIR)/om-toggle-rec
 	
-	# Asegurar rutas absolutas en el desktop file instalado
-	sed -i 's|Exec=.*|Exec=$(BIN_DIR)/om-toggle-rec|' $(APP_DIR)/om-rec.desktop
-	
-	@echo "------------------------------------------------"
-	@echo "¡Instalación completa!"
-	@echo "Añade esto a tu hyprland.conf:"
-	@echo "bind = SUPER, R, exec, uwsm-app -- $(BIN_DIR)/om-toggle-rec"
-	@echo "------------------------------------------------"
+	# Ajustar ruta en el desktop file
+	sed -i 's|Exec=.*|Exec=$(PREFIX)/bin/om-toggle-rec|' $(APP_DIR)/om-rec.desktop
 
 clean:
 	rm -f $(TARGET)

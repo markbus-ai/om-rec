@@ -1,0 +1,14 @@
+# Binarios y Objetos
+om-rec
+*.o
+
+# Archivos de empaquetado de Arch (makepkg)
+pkg/
+src/
+*.pkg.tar.zst
+*.pkg.tar.xz
+om-rec-*/
+
+# Temporales
+*~
+*.swp
