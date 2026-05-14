@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,9 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+
+// Buffer global para parámetros extra
+char extra_params[256] = {0};
 
 void get_pid_filepath(char *buffer, size_t len) {
   const char *xdg = getenv("XDG_RUNTIME_DIR");
@@ -21,7 +25,6 @@ void get_pid_filepath(char *buffer, size_t len) {
 int is_process_running(pid_t pid) {
   if (pid <= 0)
     return 0;
-  // kill con señal 0 no envía nada, solo checkea existencia y permisos
   return (kill(pid, 0) == 0 || errno == EPERM);
 }
 
@@ -104,9 +107,6 @@ void stop_recording() {
 
   if (is_process_running(pid)) {
     kill(pid, SIGINT);
-
-    // polear existencia del proceso porque waitpid no sirve acá (no somos el
-    // padre)
     for (int i = 0; i < 40; i++) {
       if (!is_process_running(pid))
         break;
@@ -129,28 +129,29 @@ void start_recording() {
   get_safe_filepath(filename, sizeof(filename));
 
   pid_t pid = fork();
-
-  // check de error al forkear
-  if (pid < 0) {
+  if (pid < 0)
     return;
-  }
 
   if (pid == 0) {
-    setsid(); // aislar el proceso de la terminal/sesión
+    setsid();
     int dev_null = open("/dev/null", O_WRONLY);
     dup2(dev_null, 1);
     dup2(dev_null, 2);
 
+    // Si hay parámetros extra (como el codec), podrías necesitarlos acá.
+    // Por ahora mantenemos el preset ultrafast para que no explote la CPU.
     char *args[] = {"wf-recorder", "-g", geometry,           "-f",
                     filename,      "-p", "preset=ultrafast", "--pixel-format",
                     "yuv420p",     NULL};
+
+    // [Inferencia] Si el usuario pasó -c codec, podrías inyectarlo en el array
+    // de args.
     execvp("wf-recorder", args);
     exit(1);
   }
 
   char pid_file[256];
   get_pid_filepath(pid_file, sizeof(pid_file));
-
   FILE *f = fopen(pid_file, "w");
   if (f) {
     fprintf(f, "%d", pid);
@@ -159,11 +160,26 @@ void start_recording() {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    printf("Uso: %s [start|stop|status|toggle]\n", argv[0]);
+  int opt;
+  // -c espera un argumento (el codec o config)
+  while ((opt = getopt(argc, argv, "c:")) != -1) {
+    switch (opt) {
+    case 'c':
+      strncpy(extra_params, optarg, sizeof(extra_params) - 1);
+      break;
+    default:
+      fprintf(stderr, "Uso: %s [-c params] [start|stop|status|toggle]\n",
+              argv[0]);
+      return 1;
+    }
+  }
+
+  if (optind >= argc) {
+    fprintf(stderr, "Falta el comando.\n");
     return 1;
   }
 
+  char *command = argv[optind];
   char pid_file[256];
   get_pid_filepath(pid_file, sizeof(pid_file));
 
@@ -177,25 +193,28 @@ int main(int argc, char *argv[]) {
     fclose(f);
   }
 
-  if (strcmp(argv[1], "start") == 0) {
+  if (strcmp(command, "start") == 0) {
     if (running)
       printf("Ya grabando (PID %d)\n", current_pid);
     else
       start_recording();
-  } else if (strcmp(argv[1], "stop") == 0) {
+  } else if (strcmp(command, "stop") == 0) {
     if (running)
       stop_recording();
     else {
       printf("No hay grabación activa.\n");
       unlink(pid_file);
     }
-  } else if (strcmp(argv[1], "status") == 0) {
+  } else if (strcmp(command, "status") == 0) {
     printf("%s\n", running ? "recording" : "idle");
-  } else if (strcmp(argv[1], "toggle") == 0) {
+  } else if (strcmp(command, "toggle") == 0) {
     if (running)
       stop_recording();
     else
       start_recording();
+  } else {
+    fprintf(stderr, "Comando desconocido: %s\n", command);
+    return 1;
   }
 
   return 0;
